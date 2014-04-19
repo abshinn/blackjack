@@ -30,8 +30,8 @@ freshdeck = [Card(suit, unichar, face, value) for suit, unichar, face, value in 
 
 class Deck(object):
     """Deck object"""
-    def __init__(self, number = 1):
-        self.stack = freshdeck*number
+    def __init__(self, N_decks = 1):
+        self.stack = freshdeck*N_decks
     def draw(self):
         card = self.stack.pop(randrange(len(self.stack)))
         return card
@@ -49,27 +49,26 @@ class Player(object):
         card = deck.draw()
         self.hand.append(card)
 
-class Dealer(object):
-    """Dealer object"""
-    def __init__(self):
-        self.hand = []
-    def draw(self, deck):
-        card = deck.draw()
-        self.hand.append(card)
-
 def letsplay():
-    deck = Deck(1)
+    deck = Deck(N_decks = 1)
     player = Player()
-    dealer = Dealer()
-    # ROUND
-    # bet (1 minimum, 100 max)
-    # deal (player, dealer, player, dealer face down)
-    # choices: [h]it, [s]tay
-    #...
-    # if dealer == 21 dealer win
-    # if dealer < 17 dealer.hit
-    #...
-
+    dealer = Player()
+    # NEW GAME
+    #  - initialize player, chips
+    # BEGIN GAME LOOP
+    #     - display bank
+    #     - enter bet (1 minimum, 100 max)
+    #     ENTER ROUND LOOP
+    #         - deal (player, dealer, player, dealer face down)
+    #         - choices: [h]it, [s]tay
+    #         - if player >  21: player busts, loses round
+    #         - if dealer =< 16: dealer.hit()
+    #         - if dealer == 21: dealer wins round
+    #         - if dealer >  21: dealer busts, loses round
+    #         - if no flag thrown, continue round, repeat deal
+    #     END ROUND LOOP
+    #     - choices: [n]ew round, [q]uit game
+    # END GAME LOOP
 
 if __name__ == "__main__":
     letsplay()
