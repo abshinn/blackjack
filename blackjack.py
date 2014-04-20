@@ -30,8 +30,9 @@ freshdeck = [Card(suit, unichar, face, value) for suit, unichar, face, value in 
 
 class Deck(object):
     """Deck object"""
-    def __init__(self, N_decks = 1):
-        self.stack = freshdeck*N_decks
+    def __init__(self, n_decks = 1):
+        self.stack = freshdeck*n_decks
+        print "Number of decks: {}".format(n_decks)
     def draw(self):
         card = self.stack.pop(randrange(len(self.stack)))
         return card
@@ -40,35 +41,109 @@ class Deck(object):
     def __str__(self):
         return "Remaining cards: {}".format(len(self.stack))
 
-class Player(object):
-    """Player object"""
+class Hand(object):
+    """Hand object"""
     def __init__(self):
-        self.chips = 100
-        self.hand = []
-    def draw(self, deck):
-        card = deck.draw()
-        self.hand.append(card)
+        self.handlist = []
+    def total(self):
+        return sum(self.handlist)
+    def hit(self, deck):
+        self.handlist.append(deck.draw())
+        if self.handlist[-1].face == "Ace":
+            print "You've got an Ace up your sleeve"
+    def __unicode__(self):
+        handstr = u""
+        for card in self.handlist:
+            handstr = handstr + card.__unicode__()
+        return handstr
+    def __str__(self):
+        return unicode(self).encode("utf-8")
 
-def letsplay():
-    deck = Deck(N_decks = 1)
-    player = Player()
-    dealer = Player()
-    # NEW GAME
-    #  - initialize player, chips
-    # BEGIN GAME LOOP
-    #     - display bank
-    #     - enter bet (1 minimum, 100 max)
-    #     ENTER ROUND LOOP
-    #         - deal (player, dealer, player, dealer face down)
-    #         - choices: [h]it, [s]tay
-    #         - if player >  21: player busts, loses round
-    #         - if dealer =< 16: dealer.hit()
-    #         - if dealer == 21: dealer wins round
-    #         - if dealer >  21: dealer busts, loses round
-    #         - if no flag thrown, continue round, repeat deal
-    #     END ROUND LOOP
-    #     - choices: [n]ew round, [q]uit game
-    # END GAME LOOP
+class newGame(object):
+    """Game object"""
+    def __init__(self):
+        self.bet = 1
+        self.bank = 10
+        self.player = Hand()
+        self.dealer = Hand()
+        self.deck = Deck(n_decks = 1)
+
+    def init_deal(self):
+        for ii in range(2):
+            self.player.hit(self.deck)
+            self.dealer.hit(self.deck)
+
+    def show(self):
+        print u"Dealer hand: {} {}".format(self.dealer, self.dealer.total())
+        print u"Player hand: {} {}".format(self.player, self.player.total())
+
+    def checkrules(self):
+        """return False if no rule is met, return rule if met"""
+        playertot = self.player.total()
+        dealertot = self.dealer.total()
+        if playertot > 21:
+            print "player busts"
+            return self.lose
+        if dealertot > 21:
+            print "dealer busts"
+            return self.win
+
+    def win(self):
+        """player wins"""
+        self.bank = self.bank + self.bet
+
+    def lose(self):
+        """player loses"""
+        self.bank = self.bank - self.bet
+
+    def place_bet(self):
+        print "Bank: {self.bank}".format(self=self)
+        answer = True
+        while answer:
+            try:
+                new_bet = input("Enter bet ({self.bet}): ".format(self=self))
+            except SyntaxError:
+                new_bet = False
+            if new_bet:
+                if type(new_bet) != int:
+                    print "invalid input type"
+                elif new_bet > self.bank:
+                    print "bet larger than bank"
+                else:
+                    self.bet = new_bet
+                    answer = False
+            else:
+                answer = False
+        print "Bet = {}".format(self.bet)
+
+def play():
+    """Game script"""
+    choice = raw_input("[n]ew game, [q]uit: ")
+    if choice == "n":
+        game = newGame()
+        # round loop
+        while True:
+            game.place_bet()
+            game.init_deal()
+            game.show()
+            # check if dealer has blackjack
+            check = game.checkrules()
+            if check:
+                print check
+                break
+            # choice
+            #while choice == "h":
+            choice2 = raw_input("[h]it or [s]tay: ")
+            if choice2 == "h":
+                game.player.hit(game.deck)
+                game.show()
+            elif choice2 == "s":
+                print "stay"
+            check = game.checkrules()
+            if check: print check
+            break
+    elif choice == "q":
+        print("quit")
 
 if __name__ == "__main__":
-    letsplay()
+    play()
