@@ -2,6 +2,7 @@
 """docstring"""
 
 from random import randrange
+from time import sleep
 
 suits_str = ["Heart", "Diamond", "Spade", "Club"]
 suits_unichr = [unichr(9829), unichr(9830), unichr(9828), unichr(9831)]
@@ -31,10 +32,18 @@ freshdeck = [Card(suit, unichar, face, value) for suit, unichar, face, value in 
 class Deck(object):
     """Deck object"""
     def __init__(self, n_decks = 1):
-        self.stack = freshdeck*n_decks
+        self.n_decks = n_decks
+        self.stack = freshdeck*self.n_decks
         print "Number of decks: {}".format(n_decks)
     def draw(self):
-        card = self.stack.pop(randrange(len(self.stack)))
+        # pick without replacement
+        try:
+            card = self.stack.pop(randrange(len(self.stack)))
+        except ValueError:
+            print "End of deck! Shuffling..."
+            sleep(1)
+            self.stack = freshdeck*self.n_decks
+            card = self.stack.pop(randrange(len(self.stack)))
         return card
     def shuffle(self):
         pass
@@ -44,16 +53,25 @@ class Deck(object):
 class Hand(object):
     """Hand object"""
     def __init__(self):
-        self.handlist = []
+        self.hand = []
     def total(self):
-        return sum(self.handlist)
+        return sum(self.hand)
     def hit(self, deck):
-        self.handlist.append(deck.draw())
-        if self.handlist[-1].face == "Ace":
-            print "You've got an Ace up your sleeve"
+        self.hand.append(deck.draw())
+        # set value of Ace to 11 if hand total <= 10
+        if self.hand[-1].face == "Ace":
+            if sum(self.hand[0:-1]) <= 10:
+                self.hand[-1].value = 11
+            #print "You've got an Ace up your sleeve"
+        # change an 11 value back to 1 if hand total > 21
+        values = [card.value for card in self.hand]
+        if 11 in values and sum(self.hand) > 21:
+            for card in self.hand:
+                if card.value == 11:
+                    card.value = 1
     def __unicode__(self):
         handstr = u""
-        for card in self.handlist:
+        for card in self.hand:
             handstr = handstr + card.__unicode__()
         return handstr
     def __str__(self):
@@ -61,43 +79,84 @@ class Hand(object):
 
 class newGame(object):
     """Game object"""
-    def __init__(self):
+    def __init__(self, n_decks = 1):
+        self.n_decks = n_decks
         self.bet = 1
-        self.bank = 10
+        self.bank = 100
         self.player = Hand()
         self.dealer = Hand()
-        self.deck = Deck(n_decks = 1)
+        self.deck = Deck(self.n_decks)
 
     def init_deal(self):
         for ii in range(2):
             self.player.hit(self.deck)
             self.dealer.hit(self.deck)
 
-    def show(self):
-        print u"Dealer hand: {} {}".format(self.dealer, self.dealer.total())
-        print u"Player hand: {} {}".format(self.player, self.player.total())
+    def new_hand(self):
+        self.player = Hand()
+        self.dealer = Hand()
+        self.deck = Deck(self.n_decks)
 
-    def checkrules(self):
-        """return False if no rule is met, return rule if met"""
+    def show(self, dealer_hide = False):
+        if dealer_hide:
+            print u"   Dealer hand: {}[...] {}".format(self.dealer.hand[0], self.dealer.hand[0].value)
+        else:
+            print u"   Dealer hand: {} {}".format(self.dealer, self.dealer.total())
+        print u"   Player hand: {} {}".format(self.player, self.player.total())
+
+    def bustcheck(self):
+        """return True if either player win or bust"""
         playertot = self.player.total()
         dealertot = self.dealer.total()
         if playertot > 21:
-            print "player busts"
-            return self.lose
-        if dealertot > 21:
-            print "dealer busts"
-            return self.win
+            print "Player busts"
+            self.lose()
+            return True
+        elif dealertot > 21:
+            print "Dealer busts"
+            self.win()
+            return True
+        elif dealertot + playertot == 42:
+            print "Mutual Blackjack.\nPush"
+            return True
+        elif playertot == 21 and len(self.player.hand) == 2:
+            print "Blackjack!\nPlayer wins"
+            self.win()
+            return True
+        elif dealertot == 21 and len(self.dealer.hand) == 2:
+            print "Blackjack!\nDealer wins"
+            self.show()
+            self.lose()
+            return True
+        return False
+
+    def wincheck(self):
+        """check win"""
+        playertot = self.player.total()
+        dealertot = self.dealer.total()
+        if playertot > dealertot:
+            print "Player wins"
+            self.win()
+        elif playertot < dealertot:
+            print "Dealer wins"
+            self.lose()
+        elif playertot == dealertot:
+            print "Push"
 
     def win(self):
         """player wins"""
-        self.bank = self.bank + self.bet
+        new = self.bank + self.bet
+        print "Bank + {} = {}".format(self.bet, new)
+        self.bank = new
 
     def lose(self):
         """player loses"""
-        self.bank = self.bank - self.bet
+        new = self.bank - self.bet
+        print "Bank - {} = {}".format(self.bet, new)
+        self.bank = new
 
     def place_bet(self):
-        print "Bank: {self.bank}".format(self=self)
+        print "Bank = {self.bank}".format(self=self)
         answer = True
         while answer:
             try:
@@ -116,34 +175,63 @@ class newGame(object):
                 answer = False
         print "Bet = {}".format(self.bet)
 
-def play():
-    """Game script"""
-    choice = raw_input("[n]ew game, [q]uit: ")
-    if choice == "n":
-        game = newGame()
-        # round loop
-        while True:
-            game.place_bet()
-            game.init_deal()
-            game.show()
-            # check if dealer has blackjack
-            check = game.checkrules()
-            if check:
-                print check
-                break
-            # choice
-            #while choice == "h":
-            choice2 = raw_input("[h]it or [s]tay: ")
-            if choice2 == "h":
-                game.player.hit(game.deck)
-                game.show()
-            elif choice2 == "s":
-                print "stay"
-            check = game.checkrules()
-            if check: print check
+def prompt(question, accept):
+    answer = ""
+    while True:
+        answer = raw_input(question)
+        if answer and answer in accept:
             break
-    elif choice == "q":
-        print("quit")
+    return answer
+
+def play(delayhit = .5):
+    """Game script"""
+    choice = prompt("[n]ew game, [q]uit: ", accept = "nq")
+    while choice == "n" or choice == "d":
+        if choice == "n":
+            game = newGame()
+        elif choice == "d":
+            game.new_hand()
+        print "\n - New Round - "
+        player = game.player
+        dealer = game.dealer
+        game.place_bet()
+        game.init_deal()
+        game.show(dealer_hide = True)
+        # check if dealer has blackjack
+        if game.bustcheck():
+            # new choice 
+            choice = prompt("\n[d]eal, [q]uit: ", accept = "dq")
+            continue
+        # choice
+        choice2 = prompt("[h]it or [s]tay: ", accept = "hs")
+        while choice2 == "h":
+            print "Player hits..."
+            sleep(delayhit)
+            player.hit(game.deck)
+            game.show(dealer_hide = True)
+            if player.total() > 21:
+                break 
+            choice2 = prompt("[h]it or [s]tay: ", accept = "hs")
+        if game.bustcheck():
+            # new choice 
+            choice = prompt("\n[d]eal, [q]uit: ", accept = "dq")
+            continue
+        game.show()
+        sleep(delayhit + 1)
+        while dealer.total() <= 17 and dealer.total() <= player.total():
+            print "Dealer hits..."
+            sleep(delayhit + 1)
+            dealer.hit(game.deck)
+            game.show()
+            if dealer.total() > 21:
+                break
+        if game.bustcheck():
+            # new choice 
+            choice = prompt("\n[d]eal, [q]uit: ", accept = "dq")
+            continue
+        game.wincheck()
+        print " - End of Round - "
+        choice = prompt("\n[d]eal, [q]uit: ", accept = "dq")
 
 if __name__ == "__main__":
     play()
