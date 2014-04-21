@@ -3,6 +3,7 @@
 
 from random import randrange
 from time import sleep
+from sys import version_info
 
 class Blackjack(object):
     """
@@ -63,12 +64,16 @@ class Blackjack(object):
                 """unicode support for Card"""
                 return u"[{self.suit_unichr} {self.face}]".format(self=self)
             def __str__(self):
-                return unicode(self).encode("utf-8")
+                if version_info < (3,0):
+                    return unicode(self).encode("utf-8")
+                else:
+                    return self.__unicode__()
 
         def freshdeck(self):
             """assemble and return list of 52*N Card objects"""
             suits_str = ["Heart", "Diamond", "Spade", "Club"]
-            suits_unichr = [unichr(9829), unichr(9830), unichr(9828), unichr(9831)]
+            #suits_unichr = [unichr(9829), unichr(9830), unichr(9828), unichr(9831)]
+            suits_unichr = [u"\u2665", u"\u2666", u"\u2664", u"\u2667"]
             cards = ["Ace", "Two", "Three", "Four", "Five", "Six", "Seven", \
                      "Eight", "Nine", "Ten", "Jack", "Queen", "King"]
             values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
@@ -82,7 +87,7 @@ class Blackjack(object):
             try:
                 card = self.stack.pop(randrange(len(self.stack)))
             except ValueError:
-                print "End of deck! Shuffling..."
+                print("End of deck! Shuffling...")
                 sleep(1)
                 self.stack = self.freshdeck()
                 card = self.stack.pop(randrange(len(self.stack)))
@@ -128,7 +133,10 @@ class Blackjack(object):
                 handstr = handstr + card.__unicode__()
             return handstr
         def __str__(self):
-            return unicode(self).encode("utf-8")
+            if version_info < (3,0):
+                return unicode(self).encode("utf-8")
+            else:
+                return self.__unicode__()
 
     def init_deal(self):
         """initial deal"""
@@ -145,31 +153,33 @@ class Blackjack(object):
     def show(self, dealer_hide = False):
         """display dealer, player hands and hand totals"""
         if dealer_hide:
-            print u"   Dealer hand: {}[...] ({})".format(self.dealer.hand[0], self.dealer.hand[0].value)
+            print(u"   Dealer hand: {}[...] ({})".format(self.dealer.hand[0], self.dealer.hand[0].value))
         else:
-            print u"   Dealer hand: {} {}".format(self.dealer, self.dealer.total())
-        print u"   Player hand: {} {}".format(self.player, self.player.total())
+            print(u"   Dealer hand: {} {}".format(self.dealer, self.dealer.total()))
+        print(u"   Player hand: {} {}".format(self.player, self.player.total()))
 
     def bustcheck(self):
         """return True if either player busts, player-blackjack, or mutual blackjack; otherwise False"""
         playertot = self.player.total()
         dealertot = self.dealer.total()
         if playertot > 21:
-            print "Player busts"
+            print("Player busts")
             self.lose()
             return True
         elif dealertot > 21:
-            print "Dealer busts"
+            print("Dealer busts")
             self.win()
             return True
-        elif playertot == 21 and len(self.player.hand) == 2:
-            print "Dealer reveal..."
-            self.show()
-            print "Blackjack!\nPlayer wins"
-            self.win(BJ = True)
-            return True
         elif (dealertot + playertot) == 42 and (len(self.player.hand) + len(self.dealer.hand)) == 4:
-            print "Mutual Blackjack.\nPush"
+            print("Dealer reveal...")
+            self.show()
+            print("Mutual Blackjack.\nPush")
+            return True
+        elif playertot == 21 and len(self.player.hand) == 2:
+            print("Dealer reveal...")
+            self.show()
+            print("Blackjack!\nPlayer wins")
+            self.win(BJ = True)
             return True
         return False
 
@@ -178,62 +188,74 @@ class Blackjack(object):
         playertot = self.player.total()
         dealertot = self.dealer.total()
         if playertot > dealertot:
-            print "Player wins"
+            print("Player wins")
             self.win()
         elif playertot < dealertot:
-            print "Dealer wins"
+            print("Dealer wins")
             self.lose()
         elif playertot == dealertot:
-            print "Push"
+            print("Push")
 
     def win(self, BJ = False):
         """player wins"""
         if BJ:
-            new = self.bank + self.bet*3/2
-            print "Bank + {} = {}".format(self.bet*3/2, new)
+            new = self.bank + self.bet*3//2
+            print("Bank + {} = {}".format(self.bet*3//2, new))
             self.bank = new
-            self.net_wins += self.bet*3/2
+            self.net_wins += self.bet*3//2
         else:
             new = self.bank + self.bet
-            print "Bank + {} = {}".format(self.bet, new)
+            print("Bank + {} = {}".format(self.bet, new))
             self.bank = new
             self.net_wins += self.bet
 
     def lose(self):
         """player loses"""
         new = self.bank - self.bet
-        print "Bank - {} = {}".format(self.bet, new)
+        print("Bank - {} = {}".format(self.bet, new))
         self.bank = new
         self.net_loss -= self.bet
 
     def place_bet(self):
         """place integer bet in range: [1, self.bank]"""
-        print "Bank = {self.bank}".format(self=self)
+        print("Bank = {self.bank}".format(self=self))
         while True:
-            new_bet = raw_input("Enter bet ({self.bet}): ".format(self=self))
+            if version_info > (2,7) and version_info < (3,0):
+                new_bet = raw_input("Enter bet ({self.bet}): ".format(self=self))
+            elif version_info >= (3,0):
+                new_bet = input("Enter bet ({self.bet}): ".format(self=self))
+            else:
+                raise "Python verion not compatible"
+            #new_bet = raw_input("Enter bet ({self.bet}): ".format(self=self))
             if new_bet:
                 try:
                     new_bet = int(new_bet)
                 except ValueError:
-                    print "   invalid input type"
+                    print("   invalid input type")
                     continue
                 if new_bet > self.bank:
-                    print "   bet cannot be larger than bank"
+                    print("   bet cannot be larger than bank")
                 elif new_bet < 1:
-                    print "   bet cannot be less than 1"
+                    print("   bet cannot be less than 1")
                 else:
                     self.bet = new_bet
                     break
             else:
                 # keep old bet
-                break
-        print "Bet = {}".format(self.bet)
+                if self.bet > self.bank:
+                    print("   bet cannot be larger than bank")
+                else:
+                    break
+        print("Bet = {}".format(self.bet))
 
 def prompt(question, accept):
     """prompt: prompt until acceptable answer receieved"""
     answer = ""
     while True:
-        answer = raw_input(question)
+        if version_info < (3,0):
+            answer = raw_input(question)
+        else:
+            answer = input(question)
         if len(answer) == 1 and answer in accept:
             break
     return answer
@@ -241,9 +263,9 @@ def prompt(question, accept):
 def play(delay = 1.25, n_decks = 1):
     """Blackjack gameplay script"""
     game = Blackjack(n_decks)
-    print game.__doc__
-    print "{} deck(s)".format(n_decks)
-    print "{} sec game delay".format(delay)
+    print(game.__doc__)
+    print("{} deck(s)".format(n_decks))
+    print("{} sec game delay".format(delay))
     choice = "d"
     round_count = 0
     while choice == "d" and game.bank > 0:
@@ -251,7 +273,7 @@ def play(delay = 1.25, n_decks = 1):
         if choice == "q":
             break
         round_count += 1
-        print "\n - Round {} - ".format(round_count)
+        print("\n - Round {} - ".format(round_count))
         game.new_hand()
         player = game.player
         dealer = game.dealer
@@ -265,7 +287,7 @@ def play(delay = 1.25, n_decks = 1):
         # choice
         choice2 = prompt("[h]it or [s]tay: ", accept = "hs")
         while choice2 == "h":
-            print "Player hits..."
+            print("Player hits...")
             sleep(delay - 1)
             player.hit(game.deck)
             game.show(dealer_hide = True)
@@ -274,11 +296,11 @@ def play(delay = 1.25, n_decks = 1):
             choice2 = prompt("[h]it or [s]tay: ", accept = "hs")
         if game.bustcheck():
             continue
-        print "Dealer reveal..."
+        print("Dealer reveal...")
         game.show()
         sleep(delay)
         while dealer.total() < 17 and dealer.total() <= player.total():
-            print "Dealer hits..."
+            print("Dealer hits...")
             sleep(delay)
             dealer.hit(game.deck)
             game.show()
@@ -288,13 +310,13 @@ def play(delay = 1.25, n_decks = 1):
         if game.bustcheck():
             continue
         game.wincheck()
-        print " - End of Round - "
+        print(" - End of Round - ")
 
-    print "\n - End of Game - "
+    print("\n - End of Game - ")
     if game.bank < 1:
-        print "\nOut of chips. The House always wins!\n"
+        print("\nOut of chips. The House always wins!\n")
     else:
-        print "\nFinal bank total = {} fake chips".format(game.bank)
-    print "Net winnings = {}\nNet loss = {}\n".format(game.net_wins, game.net_loss)
+        print("\nFinal bank total = {} fake chips".format(game.bank))
+    print("Net gain = {}\nNet loss = {}\n".format(game.net_wins, game.net_loss))
 if __name__ == "__main__":
     play()
