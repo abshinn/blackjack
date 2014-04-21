@@ -17,7 +17,7 @@ class Blackjack(object):
     ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     """
     def __init__(self, n_decks = 1):
-        """Blackjack __init__"""
+        """initialize Blackjack attributes"""
         self.n_decks = n_decks
         self.bet = 1
         self.bank = 100
@@ -34,9 +34,9 @@ class Blackjack(object):
         - creates and stores a fresh deck of Card objects
         """
         def __init__(self, n_decks = 1):
+            """initialize Deck attributes"""
             self.n_decks = n_decks
             self.stack = self.freshdeck()
-            #print "Deck init... Number of decks: {}".format(n_decks)
 
         class Card(object):
             """
@@ -48,15 +48,19 @@ class Blackjack(object):
             - when Card objects are summed in a list, their values are added
             """
             def __init__(self, suit, unichar, face, value):
+                """initialize Card attributes"""
                 self.suit_str = suit
                 self.suit_unichr = unichar
                 self.face = face
                 self.value = value
             def __add__(self, other):
+                """Card addition using + operator"""
                 return self.value + other.value
             def __radd__(self, other):
+                """Card addition using sum"""
                 return self.value + other
             def __unicode__(self):
+                """unicode support for Card"""
                 return u"[{self.suit_unichr} {self.face}]".format(self=self)
             def __str__(self):
                 return unicode(self).encode("utf-8")
@@ -96,10 +100,15 @@ class Blackjack(object):
         - prints string comprised of unicode card representations
         """
         def __init__(self):
+            """initialize Hand attribute"""
             self.hand = []
         def total(self):
             return sum(self.hand)
         def hit(self, deck):
+            """hit(deck):
+            - draw without replacement from Blackjack.Deck object
+            - drawn Aces act as 11 if prior hand total < or = 10
+            """
             self.hand.append(deck.draw())
             # set value of Ace to 11 if hand total <= 10
             if self.hand[-1].face == "Ace":
@@ -113,6 +122,7 @@ class Blackjack(object):
                     if card.value == 11:
                         card.value = 1
         def __unicode__(self):
+            """unicode support for Card objects"""
             handstr = u""
             for card in self.hand:
                 handstr = handstr + card.__unicode__()
@@ -121,16 +131,19 @@ class Blackjack(object):
             return unicode(self).encode("utf-8")
 
     def init_deal(self):
+        """initial deal"""
         for ii in range(2):
             self.player.hit(self.deck)
             self.dealer.hit(self.deck)
 
     def new_hand(self):
+        """re-initialize attributes for new round, new hand"""
         self.player = self.Hand()
         self.dealer = self.Hand()
         self.deck = self.Deck(self.n_decks)
 
     def show(self, dealer_hide = False):
+        """display dealer, player hands and hand totals"""
         if dealer_hide:
             print u"   Dealer hand: {}[...] ({})".format(self.dealer.hand[0], self.dealer.hand[0].value)
         else:
@@ -138,7 +151,7 @@ class Blackjack(object):
         print u"   Player hand: {} {}".format(self.player, self.player.total())
 
     def bustcheck(self):
-        """return True if either player win or bust"""
+        """return True if either player busts, player-blackjack, or mutual blackjack; otherwise False"""
         playertot = self.player.total()
         dealertot = self.dealer.total()
         if playertot > 21:
@@ -161,7 +174,7 @@ class Blackjack(object):
         return False
 
     def wincheck(self):
-        """check win"""
+        """determine win/lose"""
         playertot = self.player.total()
         dealertot = self.dealer.total()
         if playertot > dealertot:
@@ -194,6 +207,7 @@ class Blackjack(object):
         self.net_loss -= self.bet
 
     def place_bet(self):
+        """place integer bet in range: [1, self.bank]"""
         print "Bank = {self.bank}".format(self=self)
         while True:
             new_bet = raw_input("Enter bet ({self.bet}): ".format(self=self))
@@ -216,6 +230,7 @@ class Blackjack(object):
         print "Bet = {}".format(self.bet)
 
 def prompt(question, accept):
+    """prompt: prompt until acceptable answer receieved"""
     answer = ""
     while True:
         answer = raw_input(question)
@@ -224,7 +239,7 @@ def prompt(question, accept):
     return answer
 
 def play(delay = 1.25, n_decks = 1):
-    """Game script"""
+    """Blackjack gameplay script"""
     game = Blackjack(n_decks)
     print game.__doc__
     print "{} deck(s)".format(n_decks)
