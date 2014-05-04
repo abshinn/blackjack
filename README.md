@@ -1,4 +1,4 @@
-pthyon blackjack
+python blackjack
 ================
 
 
